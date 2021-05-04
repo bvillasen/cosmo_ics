@@ -20,7 +20,7 @@ comm = MPI.COMM_WORLD  # we assume MPI.Comm_size(comm) == 12
 rank = MPI.Comm_rank(comm)  # rank of local process, in 0:11
 n_procs = MPI.Comm_size(comm)
 
-proc_dims = (8, 8)     # 3 processes along `y`, 4 along `z`
+proc_dims = (2, 2)     # 3 processes along `y`, 4 along `z`
 
 # Create plan
 print_mpi( "Generating FFT Plan:  dims: $(grid_size)   proc_dims: $(proc_dims) \n", rank )

@@ -21,6 +21,7 @@ class Cosmology:
     self.rho_crit =  3*(self.H0*1e-3)**2/(8*np.pi* Gcosmo) / self.h**2
     self.rho_baryion_mean = self.rho_crit * self.Omega_b   #kg cm^-3
     self.rho_cdm_mean = self.rho_crit * self.Omega_cdm   #kg cm^-3
+    self.rho_mean = self.rho_crit * self.Omega_M   #kg cm^-3
     self.z_start = z_start
     # self.k_pivot =  0.02/self.h
     self.k_pivot =  1
@@ -41,6 +42,7 @@ class Cosmology:
     
     #Power spectrum
     self.pk_amlitude = {}
+    self.input_pk = None
      
     
     
@@ -202,9 +204,22 @@ class Cosmology:
     amp = self.pk_amlitude['total']
     T = self.transfer_function( k, component=component )
     ns = self.n_s
-    return amp * (k/self.k_pivot)**ns * ( D_plus * T )**2 
+    return amp * (k/self.k_pivot)**ns * ( D_plus * T )**2  
+  
+  def load_input_power_spectrum( self, input_pk_file ):
+    input_pk_data = np.loadtxt( input_pk_file ).T
+    self.input_pk = {'k_vals':input_pk_data[0], 'pk':input_pk_data[1]  }
     
-
+  def input_power_spectrum( self, k, z ):
+    k_vals  = self.input_pk['k_vals']
+    pk_vals = self.input_pk['pk']
+    a = 1 /( z + 1)
+    D = self.linear_growth_factor(a)
+    pk = np.interp( k, k_vals, pk_vals ) * 35000
+    return pk
+    
+    
+    
   def W_R( self, k, R=8 ):
     # print( k)
     x = k * R

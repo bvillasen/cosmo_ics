@@ -22,6 +22,31 @@ matplotlib.rcParams['mathtext.fontset'] = 'cm'
 matplotlib.rcParams['mathtext.rm'] = 'serif'
 
 
+def plot_densities( dens_part, dens_gas, output_dir ):
+  ncols, nrows = 2, 1
+  figure_width = 6
+  figure_height = 6
+  fig, ax_l = plt.subplots(nrows=nrows, ncols=ncols, figsize=(ncols*figure_width, nrows*figure_height))
+  plt.subplots_adjust( hspace = 0.02, wspace=0.02 )
+
+  ax = ax_l[0]
+  n = dens_part.shape[0]
+  proj = dens_part.sum( axis=0 ) / n
+  im = ax.imshow( proj )
+  color_bar = fig.colorbar( im, ax=ax, shrink = 0.8 )
+  
+  ax = ax_l[1]
+  n = dens_gas.shape[0]
+  proj = dens_gas.sum( axis=0 ) / n
+  im = ax.imshow( proj )
+  color_bar = fig.colorbar( im, ax=ax, shrink = 0.8 )
+
+  figure_name = output_dir + f'ics_comparison_density.png' 
+  fig.savefig( figure_name, bbox_inches='tight', dpi=300, facecolor=fig.get_facecolor() )
+  print( f'Saved Figure: {figure_name}' )
+
+
+
 def Plot_transfer_function( k_vals, components, cosmo, output_dir ):
   
   nrows, ncols = 1, 1

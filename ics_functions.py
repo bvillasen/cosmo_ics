@@ -17,7 +17,7 @@ def get_k_grid( nx, dx=1, shift=False ):
   k_mag = np.sqrt( kx*kx + ky*ky + kz*kz )
   return kx, ky, kz, k_mag
        
-def get_FFT( x, dx=1, shift=False, inverse=False  ):
+def get_FFT( x, dx=1, shift=False  ):
   nx, ny, nz = x.shape
   if nx != ny or nx != nz: 
     print( f'ERROR: Only cubic domains accepted, shape: {x.shape}') 
@@ -59,7 +59,7 @@ def Load_Power_Spectrum( input_dir, file_base_name, rescale_by_k2=True ):
 
 
 
-def Generate_Fourier_Amplitudes( N, dx, z, power_spectrum_function ):
+def Generate_Fourier_Amplitudes( N, dx, z, power_spectrum_function, shift=False ):
   print( 'Generating Fourier Amplitudes')
   L_box  = N * dx
   V_box = L_box**3
@@ -67,8 +67,8 @@ def Generate_Fourier_Amplitudes( N, dx, z, power_spectrum_function ):
   lambda_vals = np.random.randn( N, N, N )
 
   # Fourier transform them
-  FT_lambda, k_grid = get_FFT( lambda_vals, dx=dx, shift=False ) 
-  k_grid[0,0,0] = 1e-6
+  FT_lambda, k_grid = get_FFT( lambda_vals, dx=dx, shift=shift ) 
+  # k_grid[0,0,0] = 1e-6
 
   # Scale amplitudes with the power spectrum
   pk_vals = power_spectrum_function( k_grid, z ) 

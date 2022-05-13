@@ -116,7 +116,16 @@ lambda_vals = np.random.randn( n_grid, n_grid, n_grid )
 FT_lambda_vals = np.fft.fftn( lambda_vals )
 # Compute the k values
 k_1d = 2*np.pi*np.fft.fftfreq( n_grid, d=dx )
-ky, kz, kx = np.meshgrid( k_1d, k_1d, k_1d )
+# ky, kz, kx = np.meshgrid( k_1d, k_1d, k_1d )
+kz, ky, kx = np.meshgrid( k_1d, k_1d, k_1d, indexing='ij' )
+# kx, ky, kz = np.zeros([ n_grid, n_grid, n_grid]), np.zeros([ n_grid, n_grid, n_grid]), np.zeros([ n_grid, n_grid, n_grid])
+# for i in range(n_grid):
+#   for j in range(n_grid):
+#     for k in range(n_grid):
+#       kx[i,j,k] = k_1d[i]
+#       ky[i,j,k] = k_1d[j]
+#       kz[i,j,k] = k_1d[k] 
+      
 k2 = kx*kx + ky*ky + kz*kz
 k_grid = np.sqrt( k2 )
 # Make the k=0 freq equal to 1
@@ -146,7 +155,17 @@ vel_y = current_a * D_dot * sy * Mpc / cosmology['h']
 vel_z = current_a * D_dot * sz * Mpc / cosmology['h']
 
 pos_uniform_1D = ( np.linspace( 0, n_grid-1, n_grid) + 0.5 ) * dx 
-pos_y, pos_z, pos_x = np.meshgrid( pos_uniform_1D, pos_uniform_1D, pos_uniform_1D )
+# pos_y, pos_z, pos_x = np.meshgrid( pos_uniform_1D, pos_uniform_1D, pos_uniform_1D )
+pos_z, pos_y, pos_x = np.meshgrid( pos_uniform_1D, pos_uniform_1D, pos_uniform_1D, indexing='ij' )
+# pos_x, pos_y, pos_z = np.zeros([ n_grid, n_grid, n_grid]), np.zeros([ n_grid, n_grid, n_grid]), np.zeros([ n_grid, n_grid, n_grid])
+# for i in range(n_grid):
+#   for j in range(n_grid):
+#     for k in range(n_grid):
+#       pos_x[i,j,k] = pos_uniform_1D[i]
+#       pos_y[i,j,k] = pos_uniform_1D[j]
+#       pos_z[i,j,k] = pos_uniform_1D[k] 
+
+
 pos_x += disp_x
 pos_y += disp_y 
 pos_z += disp_z

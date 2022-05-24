@@ -2,6 +2,30 @@ import numpy as np
 
 
 
+
+def get_density( pos_x, pos_y, pos_z, p_mass, nx, Lx ):
+  N_particles = len(pos_x)
+  n_ghost = 1
+  n_total = nx + 2*n_ghost  
+  density = np.zeros( [n_total, n_total, n_total])
+  
+  particle_mass = p_mass
+  nx , ny, nz = nx, nx, nx
+  dx = Lx / nx
+  dy, dz = dx, dx
+  xMin, yMin, zMin = 0, 0, 0
+  xMax, yMax, zMax = Lx, Lx, Lx
+
+  density[1,:,:] += density[-1,:,:]
+  density[-2,:,:] += density[0,:,:]
+  density[:,1,:] += density[:,-1,:]
+  density[:,-2,:] += density[:,0,:]
+  density[:,:,1] += density[:,:,-1]
+  density[:,:,-2] += density[:,:,0]
+  density = density[1:-1,1:-1,1:-1]
+  return density
+
+
 def get_density_cic_cuda( pos_x, pos_y, pos_z, p_mass, nx, Lx ):
   import pycuda.driver as cuda
   from pycuda.compiler import SourceModule

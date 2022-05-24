@@ -8,6 +8,8 @@ from tools import *
 from internal_energy import get_internal_energy
 from density_cic import get_density_cic_cuda
 from plotting_functions import  plot_densities
+from ics_particles import generate_ics_particles
+from ics_grid import expand_data_grid_to_cholla
 
 
 np.random.seed(123456789)
@@ -70,7 +72,13 @@ def interpolate_power_spectrum( k_to_inerp, k_vals, pk_vals, log=True ):
   if log: pk = 10**pk
   return pk
 
+baryons = True
+if baryons: type = 'hydro'
+else: type = 'dmo'  
+
 figs_dir = data_dir + 'cosmo_sims/test_ics/figures/'
+output_dir = data_dir + f'cosmo_sims/test_ics/ics_python/{type}/256_50Mpc/ics_8_z100/'
+create_directory( output_dir )
 
 # input_pk_file = data_dir + 'cosmo_sims/test_ics/ics_music/dmo/input_powerspec.txt'
 input_pk_file = 'input_power_spectrum.txt'
@@ -100,14 +108,14 @@ cosmology['Om_R'] = 4.166e-5/cosmology['h']**2
 cosmology['sigma_8'] = 0.8102
 cosmology['n_s'] = 0.9665
 rho_crit =  3*(cosmology['H0']*1e-3)**2/(8*np.pi* G) / cosmology['h']**2
-Om_cdm = cosmology['Om_M'] - cosmology['Om_b']
+if baryons: Om_cdm = cosmology['Om_M'] - cosmology['Om_b']
+else: Om_cdm = cosmology['Om_M']
 rho_cdm_mean = rho_crit * Om_cdm
 rho_gas_mean = rho_crit * cosmology['Om_b']
 
 data_ics = { 'dm':{}, 'gas':{} }
 data_ics['current_a'] = current_a
 data_ics['current_z'] = current_z
-
 
 # Assign random gaussian amplitudes in real space
 lambda_vals = np.random.randn( n_grid, n_grid, n_grid )
@@ -118,14 +126,7 @@ FT_lambda_vals = np.fft.fftn( lambda_vals )
 k_1d = 2*np.pi*np.fft.fftfreq( n_grid, d=dx )
 # ky, kz, kx = np.meshgrid( k_1d, k_1d, k_1d )
 kz, ky, kx = np.meshgrid( k_1d, k_1d, k_1d, indexing='ij' )
-# kx, ky, kz = np.zeros([ n_grid, n_grid, n_grid]), np.zeros([ n_grid, n_grid, n_grid]), np.zeros([ n_grid, n_grid, n_grid])
-# for i in range(n_grid):
-#   for j in range(n_grid):
-#     for k in range(n_grid):
-#       kx[i,j,k] = k_1d[i]
-#       ky[i,j,k] = k_1d[j]
-#       kz[i,j,k] = k_1d[k] 
-      
+    
 k2 = kx*kx + ky*ky + kz*kz
 k_grid = np.sqrt( k2 )
 # Make the k=0 freq equal to 1
@@ -141,9 +142,9 @@ D = get_linear_growth_factor( current_a, cosmology )
 D_dot = get_linear_growth_factor_deriv( current_a, cosmology )
 
 
-ft_sx = -1j / D * kx / k2 * delta_vals
-ft_sy = -1j / D * ky / k2 * delta_vals
-ft_sz = -1j / D * kz / k2 * delta_vals
+ft_sx = 1j / D * kx / k2 * delta_vals
+ft_sy = 1j / D * ky / k2 * delta_vals
+ft_sz = 1j / D * kz / k2 * delta_vals
 sx = np.fft.ifftn( ft_sx ).real 
 sy = np.fft.ifftn( ft_sy ).real 
 sz = np.fft.ifftn( ft_sz ).real 
@@ -157,14 +158,6 @@ vel_z = current_a * D_dot * sz * Mpc / cosmology['h']
 pos_uniform_1D = ( np.linspace( 0, n_grid-1, n_grid) + 0.5 ) * dx 
 # pos_y, pos_z, pos_x = np.meshgrid( pos_uniform_1D, pos_uniform_1D, pos_uniform_1D )
 pos_z, pos_y, pos_x = np.meshgrid( pos_uniform_1D, pos_uniform_1D, pos_uniform_1D, indexing='ij' )
-# pos_x, pos_y, pos_z = np.zeros([ n_grid, n_grid, n_grid]), np.zeros([ n_grid, n_grid, n_grid]), np.zeros([ n_grid, n_grid, n_grid])
-# for i in range(n_grid):
-#   for j in range(n_grid):
-#     for k in range(n_grid):
-#       pos_x[i,j,k] = pos_uniform_1D[i]
-#       pos_y[i,j,k] = pos_uniform_1D[j]
-#       pos_z[i,j,k] = pos_uniform_1D[k] 
-
 
 pos_x += disp_x
 pos_y += disp_y 
@@ -189,36 +182,41 @@ print( f"Particle Mass: {data_ics['dm']['p_mass']}")
 data_ics['dm']['vel_x'] = vel_x.flatten()
 data_ics['dm']['vel_y'] = vel_y.flatten()
 data_ics['dm']['vel_z'] = vel_z.flatten()
-data_ics['dm']['pos_z'] = pos_x
+data_ics['dm']['pos_x'] = pos_x
 data_ics['dm']['pos_y'] = pos_y
-data_ics['dm']['pos_x'] = pos_z
+data_ics['dm']['pos_z'] = pos_z
 
-# dm_density =  get_density_cic_cuda( pos_x, pos_y, pos_z, particle_mass, n_grid, L_kpc )
-# dm_density =  get_density_cic_cuda( pos_x, pos_z, pos_y, particle_mass, n_grid, L_kpc )
-# dm_density =  get_density_cic_cuda( pos_y, pos_x, pos_z, particle_mass, n_grid, L_kpc )
-# dm_density =  get_density_cic_cuda( pos_y, pos_z, pos_x, particle_mass, n_grid, L_kpc )
-# dm_density =  get_density_cic_cuda( pos_z, pos_x, pos_y, particle_mass, n_grid, L_kpc )
-dm_density =  get_density_cic_cuda( pos_z, pos_y, pos_x, particle_mass, n_grid, L_kpc )
+dm_density =  get_density_cic_cuda( pos_x, pos_y, pos_z, particle_mass, n_grid, L_kpc )
 
+n_snapshot = 0
+Lbox = L_kpc
+box_size = [ Lbox, Lbox, Lbox ]
+grid_size = [ n_grid, n_grid, n_grid ]
+proc_grid  = [ 2, 2, 2 ]
+output_base_name = '{0}_particles.h5'.format( n_snapshot )
+generate_ics_particles(data_ics, output_dir, output_base_name, proc_grid, box_size, grid_size)
 
-# Baryons
-delta = np.fft.ifftn( delta_vals ).real 
-gas_density = rho_gas_mean * ( 1 + delta )
-# gas_density = gas_density.T
-# gas_density = dm_density / cosmo.rho_cdm_mean * cosmo.rho_baryion_mean
-gas_vel_x = vel_x
-gas_vel_y = vel_y
-gas_vel_z = vel_z
-temperature = 231.44931976   #k
-gas_U = get_internal_energy( temperature ) * gas_density
-gas_E = gas_U + 0.5 * gas_density *  ( gas_vel_x*gas_vel_x + gas_vel_y*gas_vel_y + gas_vel_z*gas_vel_z  )  
-data_ics['gas']['density'] = gas_density
-data_ics['gas']['momentum_x'] = gas_density * gas_vel_z
-data_ics['gas']['momentum_y'] = gas_density * gas_vel_y
-data_ics['gas']['momentum_z'] = gas_density * gas_vel_x
-data_ics['gas']['GasEnergy'] = gas_U
-data_ics['gas']['Energy'] = gas_E
+if baryons:
 
-plot_densities( dm_density, gas_density, figs_dir )
+  # Baryons
+  delta = np.fft.ifftn( delta_vals ).real 
+  gas_density = rho_gas_mean * ( 1 + delta )
+  gas_density = gas_density.T
+  # gas_density = dm_density / cosmo.rho_cdm_mean * cosmo.rho_baryion_mean
+  gas_vel_x = vel_x.T
+  gas_vel_y = vel_y.T
+  gas_vel_z = vel_z.T
+  temperature = 231.44931976   #k
+  gas_U = get_internal_energy( temperature ) * gas_density
+  gas_E = gas_U + 0.5 * gas_density *  ( gas_vel_x*gas_vel_x + gas_vel_y*gas_vel_y + gas_vel_z*gas_vel_z  )  
+  data_ics['gas']['density'] = gas_density
+  data_ics['gas']['momentum_x'] = gas_density * gas_vel_x
+  data_ics['gas']['momentum_y'] = gas_density * gas_vel_y
+  data_ics['gas']['momentum_z'] = gas_density * gas_vel_z
+  data_ics['gas']['GasEnergy'] = gas_U
+  data_ics['gas']['Energy'] = gas_E
 
+  plot_densities( dm_density, gas_density, figs_dir )
 
+  output_base_name = '{0}.h5'.format( n_snapshot )
+  expand_data_grid_to_cholla( proc_grid, data_ics['gas'], output_dir, output_base_name, loop_complete_files=True )
